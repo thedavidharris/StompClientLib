@@ -58,16 +58,47 @@ public enum StompAckMode {
 
 // Fundamental Protocols
 public protocol StompClientLibDelegate {
-    func stompClient(client: StompClientLib!, didReceiveMessageWithJSONBody jsonBody: AnyObject?, withHeader header:[String:String]?, withDestination destination: String)
+    func stompClient(client: StompClientLibProtocol!, didReceiveMessageWithJSONBody jsonBody: AnyObject?, withHeader header:[String:String]?, withDestination destination: String)
     
-    func stompClientDidDisconnect(client: StompClientLib!)
-    func stompClientDidConnect(client: StompClientLib!)
-    func serverDidSendReceipt(client: StompClientLib!, withReceiptId receiptId: String)
-    func serverDidSendError(client: StompClientLib!, withErrorMessage description: String, detailedErrorMessage message: String?)
+    func stompClientDidDisconnect(client: StompClientLibProtocol!)
+    func stompClientDidConnect(client: StompClientLibProtocol!)
+    func serverDidSendReceipt(client: StompClientLibProtocol!, withReceiptId receiptId: String)
+    func serverDidSendError(client: StompClientLibProtocol!, withErrorMessage description: String, detailedErrorMessage message: String?)
     func serverDidSendPing()
 }
 
-public class StompClientLib: NSObject, SRWebSocketDelegate {
+public protocol StompClientLibProtocol : NSObject, SRWebSocketDelegate {
+    func sendJSONForDict(dict: AnyObject, toDestination destination: String)
+    func openSocketWithURLRequest(request: NSURLRequest, delegate: StompClientLibDelegate)
+    func openSocketWithURLRequest(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String : String]?)
+    func webSocket(_ webSocket: SRWebSocket!, didReceiveMessage message: Any!)
+    func webSocketDidOpen(_ webSocket: SRWebSocket!)
+    func webSocket(_ webSocket: SRWebSocket!, didFailWithError error: Error!)
+    func webSocket(_ webSocket: SRWebSocket!, didCloseWithCode code: Int, reason: String!, wasClean: Bool)
+    func webSocket(_ webSocket: SRWebSocket!, didReceivePong pongPayload: Data!)
+    func sendMessage(message: String, toDestination destination: String, withHeaders headers: [String : String]?, withReceipt receipt: String?)
+    func isConnected() -> Bool
+    func subscribe(destination: String)
+    func subscribeToDestination(destination: String, ackMode: StompAckMode)
+    func subscribeWithHeader(destination: String, withHeader header: [String : String])
+    func unsubscribe(destination: String)
+    func begin(transactionId: String)
+    func commit(transactionId: String)
+    func abort(transactionId: String)
+    func ack(messageId: String)
+    func ack(messageId: String, withSubscription subscription: String)
+    func disconnect()
+    func reconnect(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String : String], time: Double, exponentialBackoff: Bool)
+    func autoDisconnect(time: Double)
+}
+
+extension StompClientLibProtocol {
+    func reconnect(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String : String] = [String: String](), time: Double = 1.0, exponentialBackoff: Bool = true) {
+        reconnect(request: request, delegate: delegate, connectionHeaders: connectionHeaders, time: time, exponentialBackoff: exponentialBackoff)
+    }
+}
+
+public class StompClientLib: NSObject, SRWebSocketDelegate, StompClientLibProtocol {
     var socket: SRWebSocket?
     var sessionId: String?
     var delegate: StompClientLibDelegate?
@@ -445,7 +476,7 @@ public class StompClientLib: NSObject, SRWebSocketDelegate {
     
     // Reconnect after one sec or arg, if reconnect is available
     // TODO: MAKE A VARIABLE TO CHECK RECONNECT OPTION IS AVAILABLE OR NOT
-    public func reconnect(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String: String] = [String: String](), time: Double = 1.0, exponentialBackoff: Bool = true){
+    public func reconnect(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String: String], time: Double, exponentialBackoff: Bool){
         if #available(iOS 10.0, *) {
             Timer.scheduledTimer(withTimeInterval: time, repeats: true, block: { _ in
                 self.reconnectLogic(request: request, delegate: delegate
