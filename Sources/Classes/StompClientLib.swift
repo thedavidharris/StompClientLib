@@ -58,7 +58,7 @@ public enum StompAckMode {
 
 // Fundamental Protocols
 public protocol StompClientLibDelegate {
-    func stompClient(client: StompClientLibProtocol!, didReceiveMessageWithJSONBody jsonBody: AnyObject?, withHeader header:[String:String]?, withDestination destination: String)
+    func stompClient(client: StompClientLibProtocol!, didReceiveMessageWithJSONBody jsonBody: AnyObject?, akaStringBody stringBody: String?, withHeader header:[String:String]?, withDestination destination: String)
     
     func stompClientDidDisconnect(client: StompClientLibProtocol!)
     func stompClientDidConnect(client: StompClientLibProtocol!)
@@ -159,7 +159,7 @@ public class StompClientLib: NSObject, StompClientLibProtocol {
             self.openSocket()
         }
     }
-    
+
     private func sendFrame(command: String?, header: [String: String]?, body: AnyObject?) {
         if socket?.readyState == .OPEN {
             var frameString = ""
@@ -241,7 +241,7 @@ public class StompClientLib: NSObject, StompClientLibProtocol {
             // Response
             if let delegate = delegate {
                 DispatchQueue.main.async(execute: {
-                    delegate.stompClient(client: self, didReceiveMessageWithJSONBody: self.dictForJSONString(jsonStr: body), withHeader: headers, withDestination: self.destinationFromHeader(header: headers))
+                    delegate.stompClient(client: self, didReceiveMessageWithJSONBody: self.dictForJSONString(jsonStr: body), akaStringBody: body, withHeader: headers, withDestination: self.destinationFromHeader(header: headers))
                 })
             }
         } else if command == StompCommands.responseFrameReceipt {   //
@@ -410,7 +410,7 @@ public class StompClientLib: NSObject, StompClientLibProtocol {
     public func reconnect(request: NSURLRequest, delegate: StompClientLibDelegate) {
         reconnect(request: request, delegate: delegate, connectionHeaders: [String : String](), time: 1.0, exponentialBackoff: true)
     }
-    
+
     private func reconnectLogic(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String: String] = [String: String]()){
         // Check if connection is alive or dead
         if (!self.isConnected()){
@@ -439,18 +439,18 @@ public class StompClientLib: NSObject, StompClientLibProtocol {
 
 extension StompClientLib: SRWebSocketDelegate {
     public func webSocket(_ webSocket: SRWebSocket, didReceiveMessage message: Any) {
-        
+
         func processString(string: String) {
             var contents = string.components(separatedBy: "\n")
             if contents.first == "" {
                 contents.removeFirst()
             }
-            
+
             if let command = contents.first {
                 var headers = [String: String]()
                 var body = ""
                 var hasHeaders  = false
-                
+
                 contents.removeFirst()
                 for line in contents {
                     if hasHeaders == true {
@@ -461,21 +461,21 @@ extension StompClientLib: SRWebSocketDelegate {
                         } else {
                             let parts = line.components(separatedBy: ":")
                             if let key = parts.first {
-                                headers[key] = parts.last
+                                headers[key] = parts.dropFirst().joined(separator: ":")
                             }
                         }
                     }
                 }
-                
+
                 // Remove the garbage from body
                 if body.hasSuffix("\0") {
                     body = body.replacingOccurrences(of: "\0", with: "")
                 }
-                
+
                 receiveFrame(command: command, headers: headers, body: body)
             }
         }
-        
+
         if let strData = message as? NSData {
             if let msg = String(data: strData as Data, encoding: String.Encoding.utf8) {
                 processString(string: msg)
@@ -484,22 +484,22 @@ extension StompClientLib: SRWebSocketDelegate {
             processString(string: str)
         }
     }
-    
+
     public func webSocketDidOpen(_ webSocket: SRWebSocket) {
         print("WebSocket is connected")
         connect()
     }
-    
+
     public func webSocket(_ webSocket: SRWebSocket, didFailWithError error: Error) {
         print("didFailWithError: \(String(describing: error))")
-        
+
         if let delegate = delegate {
             DispatchQueue.main.async(execute: {
                 delegate.serverDidSendError(client: self, withErrorMessage: error.localizedDescription, detailedErrorMessage: error as? String)
             })
         }
     }
-    
+
     public func webSocket(_ webSocket: SRWebSocket, didCloseWithCode code: Int, reason: String?, wasClean: Bool) {
         print("didCloseWithCode \(code), reason: \(String(describing: reason))")
         if let delegate = delegate {
@@ -508,7 +508,7 @@ extension StompClientLib: SRWebSocketDelegate {
             })
         }
     }
-    
+
     public func webSocket(_ webSocket: SRWebSocket, didReceivePong pongPayload: Data?) {
         print("didReceivePong")
     }
