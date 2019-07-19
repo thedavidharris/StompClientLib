@@ -58,16 +58,36 @@ public enum StompAckMode {
 
 // Fundamental Protocols
 public protocol StompClientLibDelegate {
-    func stompClient(client: StompClientLib!, didReceiveMessageWithJSONBody jsonBody: AnyObject?, akaStringBody stringBody: String?, withHeader header:[String:String]?, withDestination destination: String)
+    func stompClient(client: StompClientLibProtocol!, didReceiveMessageWithJSONBody jsonBody: AnyObject?, akaStringBody stringBody: String?, withHeader header:[String:String]?, withDestination destination: String)
     
-    func stompClientDidDisconnect(client: StompClientLib!)
-    func stompClientDidConnect(client: StompClientLib!)
-    func serverDidSendReceipt(client: StompClientLib!, withReceiptId receiptId: String)
-    func serverDidSendError(client: StompClientLib!, withErrorMessage description: String, detailedErrorMessage message: String?)
+    func stompClientDidDisconnect(client: StompClientLibProtocol!)
+    func stompClientDidConnect(client: StompClientLibProtocol!)
+    func serverDidSendReceipt(client: StompClientLibProtocol!, withReceiptId receiptId: String)
+    func serverDidSendError(client: StompClientLibProtocol!, withErrorMessage description: String, detailedErrorMessage message: String?)
     func serverDidSendPing()
 }
 
-public class StompClientLib: NSObject, SRWebSocketDelegate {
+public protocol StompClientLibProtocol : NSObject {
+    func sendJSONForDict(dict: AnyObject, toDestination destination: String)
+    func openSocketWithURLRequest(request: NSURLRequest, delegate: StompClientLibDelegate)
+    func openSocketWithURLRequest(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String : String]?)
+    func sendMessage(message: String, toDestination destination: String, withHeaders headers: [String : String]?, withReceipt receipt: String?)
+    func isConnected() -> Bool
+    func subscribe(destination: String)
+    func subscribeToDestination(destination: String, ackMode: StompAckMode)
+    func subscribeWithHeader(destination: String, withHeader header: [String : String])
+    func unsubscribe(destination: String)
+    func begin(transactionId: String)
+    func commit(transactionId: String)
+    func abort(transactionId: String)
+    func ack(messageId: String)
+    func ack(messageId: String, withSubscription subscription: String)
+    func disconnect()
+    func reconnect(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String : String], time: Double, exponentialBackoff: Bool)
+    func autoDisconnect(time: Double)
+}
+
+public class StompClientLib: NSObject, StompClientLibProtocol {
     var socket: SRWebSocket?
     var sessionId: String?
     var delegate: StompClientLibDelegate?
@@ -139,82 +159,7 @@ public class StompClientLib: NSObject, SRWebSocketDelegate {
             self.openSocket()
         }
     }
-    
-    public func webSocket(_ webSocket: SRWebSocket!, didReceiveMessage message: Any!) {
-        
-        func processString(string: String) {
-            var contents = string.components(separatedBy: "\n")
-            if contents.first == "" {
-                contents.removeFirst()
-            }
-            
-            if let command = contents.first {
-                var headers = [String: String]()
-                var body = ""
-                var hasHeaders  = false
-                
-                contents.removeFirst()
-                for line in contents {
-                    if hasHeaders == true {
-                        body += line
-                    } else {
-                        if line == "" {
-                            hasHeaders = true
-                        } else {
-                            let parts = line.components(separatedBy: ":")
-                            if let key = parts.first {
-                                headers[key] = parts.dropFirst().joined(separator: ":")
-                            }
-                        }
-                    }
-                }
-                
-                // Remove the garbage from body
-                if body.hasSuffix("\0") {
-                    body = body.replacingOccurrences(of: "\0", with: "")
-                }
-                
-                receiveFrame(command: command, headers: headers, body: body)
-            }
-        }
-        
-        if let strData = message as? NSData {
-            if let msg = String(data: strData as Data, encoding: String.Encoding.utf8) {
-                processString(string: msg)
-            }
-        } else if let str = message as? String {
-            processString(string: str)
-        }
-    }
-    
-    public func webSocketDidOpen(_ webSocket: SRWebSocket!) {
-        print("WebSocket is connected")
-        connect()
-    }
-    
-    public func webSocket(_ webSocket: SRWebSocket!, didFailWithError error: Error!) {
-        print("didFailWithError: \(String(describing: error))")
-        
-        if let delegate = delegate {
-            DispatchQueue.main.async(execute: {
-                delegate.serverDidSendError(client: self, withErrorMessage: error.localizedDescription, detailedErrorMessage: error as? String)
-            })
-        }
-    }
-    
-    public func webSocket(_ webSocket: SRWebSocket!, didCloseWithCode code: Int, reason: String!, wasClean: Bool) {
-        print("didCloseWithCode \(code), reason: \(String(describing: reason))")
-        if let delegate = delegate {
-            DispatchQueue.main.async(execute: {
-                delegate.stompClientDidDisconnect(client: self)
-            })
-        }
-    }
-    
-    public func webSocket(_ webSocket: SRWebSocket!, didReceivePong pongPayload: Data!) {
-        print("didReceivePong")
-    }
-    
+
     private func sendFrame(command: String?, header: [String: String]?, body: AnyObject?) {
         if socket?.readyState == .OPEN {
             var frameString = ""
@@ -445,7 +390,7 @@ public class StompClientLib: NSObject, SRWebSocketDelegate {
     
     // Reconnect after one sec or arg, if reconnect is available
     // TODO: MAKE A VARIABLE TO CHECK RECONNECT OPTION IS AVAILABLE OR NOT
-    public func reconnect(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String: String] = [String: String](), time: Double = 1.0, exponentialBackoff: Bool = true){
+    public func reconnect(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String: String], time: Double, exponentialBackoff: Bool){
         if #available(iOS 10.0, *) {
             Timer.scheduledTimer(withTimeInterval: time, repeats: true, block: { _ in
                 self.reconnectLogic(request: request, delegate: delegate
@@ -462,6 +407,10 @@ public class StompClientLib: NSObject, SRWebSocketDelegate {
     //        reconnectLogic(request: request, delegate: delegate, connectionHeaders: connectionHeaders)
     //    }
     
+    public func reconnect(request: NSURLRequest, delegate: StompClientLibDelegate) {
+        reconnect(request: request, delegate: delegate, connectionHeaders: [String : String](), time: 1.0, exponentialBackoff: true)
+    }
+
     private func reconnectLogic(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String: String] = [String: String]()){
         // Check if connection is alive or dead
         if (!self.isConnected()){
@@ -485,5 +434,82 @@ public class StompClientLib: NSObject, SRWebSocketDelegate {
             // Disconnect the socket
             self.disconnect()
         }
+    }
+}
+
+extension StompClientLib: SRWebSocketDelegate {
+    public func webSocket(_ webSocket: SRWebSocket, didReceiveMessage message: Any) {
+
+        func processString(string: String) {
+            var contents = string.components(separatedBy: "\n")
+            if contents.first == "" {
+                contents.removeFirst()
+            }
+
+            if let command = contents.first {
+                var headers = [String: String]()
+                var body = ""
+                var hasHeaders  = false
+
+                contents.removeFirst()
+                for line in contents {
+                    if hasHeaders == true {
+                        body += line
+                    } else {
+                        if line == "" {
+                            hasHeaders = true
+                        } else {
+                            let parts = line.components(separatedBy: ":")
+                            if let key = parts.first {
+                                headers[key] = parts.dropFirst().joined(separator: ":")
+                            }
+                        }
+                    }
+                }
+
+                // Remove the garbage from body
+                if body.hasSuffix("\0") {
+                    body = body.replacingOccurrences(of: "\0", with: "")
+                }
+
+                receiveFrame(command: command, headers: headers, body: body)
+            }
+        }
+
+        if let strData = message as? NSData {
+            if let msg = String(data: strData as Data, encoding: String.Encoding.utf8) {
+                processString(string: msg)
+            }
+        } else if let str = message as? String {
+            processString(string: str)
+        }
+    }
+
+    public func webSocketDidOpen(_ webSocket: SRWebSocket) {
+        print("WebSocket is connected")
+        connect()
+    }
+
+    public func webSocket(_ webSocket: SRWebSocket, didFailWithError error: Error) {
+        print("didFailWithError: \(String(describing: error))")
+
+        if let delegate = delegate {
+            DispatchQueue.main.async(execute: {
+                delegate.serverDidSendError(client: self, withErrorMessage: error.localizedDescription, detailedErrorMessage: error as? String)
+            })
+        }
+    }
+
+    public func webSocket(_ webSocket: SRWebSocket, didCloseWithCode code: Int, reason: String?, wasClean: Bool) {
+        print("didCloseWithCode \(code), reason: \(String(describing: reason))")
+        if let delegate = delegate {
+            DispatchQueue.main.async(execute: {
+                delegate.stompClientDidDisconnect(client: self)
+            })
+        }
+    }
+
+    public func webSocket(_ webSocket: SRWebSocket, didReceivePong pongPayload: Data?) {
+        print("didReceivePong")
     }
 }
