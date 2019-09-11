@@ -25,6 +25,7 @@ struct StompCommands {
     static let controlChar = String(format: "%C", arguments: [0x00])
     
     // Ack Mode
+    static let ackClientIndividual = "client-individual"
     static let ackClient = "client"
     static let ackAuto = "auto"
     // Header Commands
@@ -35,7 +36,7 @@ struct StompCommands {
     static let commandHeaderContentType = "content-type"
     static let commandHeaderAck = "ack"
     static let commandHeaderTransaction = "transaction"
-    static let commandHeaderMessageId = "message-id"
+    static let commandHeaderMessageId = "id"
     static let commandHeaderSubscription = "subscription"
     static let commandHeaderDisconnected = "disconnected"
     static let commandHeaderHeartBeat = "heart-beat"
@@ -54,6 +55,7 @@ struct StompCommands {
 public enum StompAckMode {
     case AutoMode
     case ClientMode
+    case ClientIndividualMode
 }
 
 // Fundamental Protocols
@@ -69,7 +71,6 @@ public protocol StompClientLibDelegate {
 
 public protocol StompClientLibProtocol : NSObject {
     func sendJSONForDict(dict: AnyObject, toDestination destination: String)
-    func openSocketWithURLRequest(request: NSURLRequest, delegate: StompClientLibDelegate)
     func openSocketWithURLRequest(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String : String]?)
     func sendMessage(message: String, toDestination destination: String, withHeaders headers: [String : String]?, withReceipt receipt: String?)
     func isConnected() -> Bool
@@ -108,16 +109,12 @@ public class StompClientLib: NSObject, StompClientLibProtocol {
         }
     }
     
-    public func openSocketWithURLRequest(request: NSURLRequest, delegate: StompClientLibDelegate) {
+    public func openSocketWithURLRequest(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String: String]? = nil) {
+        self.connectionHeaders = connectionHeaders
         self.delegate = delegate
         self.urlRequest = request
         // Opening the socket
         openSocket()
-    }
-    
-    public func openSocketWithURLRequest(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String: String]?) {
-        self.connectionHeaders = connectionHeaders
-        openSocketWithURLRequest(request: request, delegate: delegate)
         self.connection = true
     }
     
@@ -153,6 +150,12 @@ public class StompClientLib: NSObject, StompClientLibProtocol {
      */
     private func connect() {
         if socket?.readyState == .OPEN {
+            // Support for Spring Boot 2.1.x
+            if connectionHeaders == nil {
+                connectionHeaders = [StompCommands.commandHeaderAcceptVersion:"1.1,1.2"]
+            } else {
+                connectionHeaders?[StompCommands.commandHeaderAcceptVersion] = "1.1,1.2"
+            }
             // at the moment only anonymous logins
             self.sendFrame(command: StompCommands.commandConnect, header: connectionHeaders, body: nil)
         } else {
@@ -317,6 +320,9 @@ public class StompClientLib: NSObject, StompClientLibProtocol {
         switch ackMode {
         case StompAckMode.ClientMode:
             ack = StompCommands.ackClient
+            break
+        case StompAckMode.ClientIndividualMode:
+            ack = StompCommands.ackClientIndividual
             break
         default:
             ack = StompCommands.ackAuto
