@@ -11,7 +11,7 @@ let package = Package(
     ],
     dependencies: [
         .package(
-            url: "https://github.com/facebook/SocketRocket",
+            url: "https://github.com/devguy22/SocketRocket",
             .branch("master")
         ),
     ],
