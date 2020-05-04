@@ -10,7 +10,6 @@
 		70C2B92522D9265A00AABB5E /* StompClientLib.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70C2B92022D9260100AABB5E /* StompClientLib.swift */; };
 		70C2B92622D9267200AABB5E /* StompClientLib.h in Headers */ = {isa = PBXBuildFile; fileRef = 70C2B92222D9260100AABB5E /* StompClientLib.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		70C2B92822D9288300AABB5E /* SocketRocket.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 70C2B92722D9288300AABB5E /* SocketRocket.framework */; };
-		EBB4BF43232A743E00DBA8B9 /* package.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBB4BF42232A743E00DBA8B9 /* package.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,7 +20,6 @@
 		70C2B92422D9260100AABB5E /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		70C2B92722D9288300AABB5E /* SocketRocket.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SocketRocket.framework; path = Carthage/Build/iOS/SocketRocket.framework; sourceTree = "<group>"; };
 		EB9B88FA22DCF257008C2A51 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		EBB4BF42232A743E00DBA8B9 /* package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = package.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,7 +45,6 @@
 		607FACC71AFB9204008FA782 = {
 			isa = PBXGroup;
 			children = (
-				EBB4BF42232A743E00DBA8B9 /* package.swift */,
 				EB9B88FA22DCF257008C2A51 /* Info.plist */,
 				70C2B91E22D9260100AABB5E /* Sources */,
 				607FACD11AFB9204008FA782 /* Products */,
@@ -171,7 +168,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EBB4BF43232A743E00DBA8B9 /* package.swift in Sources */,
 				70C2B92522D9265A00AABB5E /* StompClientLib.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
