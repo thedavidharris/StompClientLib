@@ -6,7 +6,10 @@
 //
 //
 
+#if !os(macOS)
 import UIKit
+#endif
+
 import SocketRocket
 
 struct StompCommands {
@@ -397,7 +400,7 @@ public class StompClientLib: NSObject, StompClientLibProtocol {
     // Reconnect after one sec or arg, if reconnect is available
     // TODO: MAKE A VARIABLE TO CHECK RECONNECT OPTION IS AVAILABLE OR NOT
     public func reconnect(request: NSURLRequest, delegate: StompClientLibDelegate, connectionHeaders: [String: String], time: Double, exponentialBackoff: Bool){
-        if #available(iOS 10.0, *) {
+        if #available(iOS 10.0, macOS 10.12, *) {
             Timer.scheduledTimer(withTimeInterval: time, repeats: true, block: { _ in
                 self.reconnectLogic(request: request, delegate: delegate
                     , connectionHeaders: connectionHeaders)
