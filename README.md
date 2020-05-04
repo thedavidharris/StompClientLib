@@ -77,13 +77,13 @@ github "WrathChaos/StompClientLib"
 
 ## Usage
 
-```ruby
+```swift
 import StompClientLib
 ```
 
 Once imported, you can open a connection to your WebSocket server.
 
-```ruby
+```swift
 var socketClient = StompClientLib()
 let url = NSURL(string: "your-socket-url-is-here")!
 socketClient.openSocketWithURLRequest(request: NSURLRequest(url: url as URL) , delegate: self)
@@ -95,7 +95,7 @@ After you are connected, there are some delegate methods that you need to implem
 
 ## stompClientDidConnect
 
-```ruby
+```swift
 func stompClientDidConnect(client: StompClientLib!) {
 print("Socket is connected")
 // Stomp subscribe will be here!
@@ -106,7 +106,7 @@ socketClient.subscribe(destination: topic)
 
 ## stompClientDidDisconnect
 
-```ruby
+```swift
 func stompClientDidDisconnect(client: StompClientLib!) {
 print("Socket is Disconnected")
 }
@@ -116,7 +116,7 @@ print("Socket is Disconnected")
 
 Your json message will be converted to JSON Body as AnyObject and you will receive your message in this function
 
-```ruby
+```swift
 func stompClient(client: StompClientLib!, didReceiveMessageWithJSONBody jsonBody: AnyObject?, akaStringBody stringBody: String?, withHeader header: [String : String]?, withDestination destination: String) {
 print("Destination : \(destination)")
 print("JSON Body : \(String(describing: jsonBody))")
@@ -128,10 +128,10 @@ print("String Body : \(stringBody ?? "nil")")
 
 Your json message will be converted to JSON Body as AnyObject and you will receive your message in this function
 
-```ruby
+```swift
 func stompClientJSONBody(client: StompClientLib!, didReceiveMessageWithJSONBody jsonBody: String?, withHeader header: [String : String]?, withDestination destination: String) {
-print("DESTIONATION : \(destination)")
-print("String JSON BODY : \(String(describing: jsonBody))")
+  print("DESTIONATION : \(destination)")
+  print("String JSON BODY : \(String(describing: jsonBody))")
 }
 ```
 
@@ -139,9 +139,9 @@ print("String JSON BODY : \(String(describing: jsonBody))")
 
 If you will use STOMP for in-app purchase, you might need to use this function to get receipt
 
-```ruby
+```swift
 func serverDidSendReceipt(client: StompClientLib!, withReceiptId receiptId: String) {
-print("Receipt : \(receiptId)")
+  print("Receipt : \(receiptId)")
 }
 ```
 
@@ -149,9 +149,9 @@ print("Receipt : \(receiptId)")
 
 Your error message will be received in this function
 
-```ruby
+```swift
 func serverDidSendError(client: StompClientLib!, withErrorMessage description: String, detailedErrorMessage message: String?) {
-print("Error Send : \(String(describing: message))")
+  print("Error Send : \(String(describing: message))")
 }
 ```
 
@@ -159,9 +159,9 @@ print("Error Send : \(String(describing: message))")
 
 If you need to control your server's ping, here is your part
 
-```ruby
+```swift
 func serverDidSendPing() {
-print("Server ping")
+  print("Server ping")
 }
 ```
 
@@ -173,14 +173,14 @@ Suggestion : Subscribe to your topic in "stompClientDidConnect" function and uns
 
 ## Subscribe
 
-```ruby
+```swift
 socketClient.subscribe(destination: topic)
 // Note : topic needs to be a String object
 ```
 
 ## Unsubscribe
 
-```ruby
+```swift
 socketClient.unsubscribe(destination: topic)
 ```
 
@@ -188,7 +188,7 @@ Important : You have to send your destination for both subscribe or unsubscribe!
 
 ## Unsubsribe with header
 
-```ruby
+```swift
 let destination = "/topic/your_topic"
 let ack = destination
 let id = destination
@@ -205,27 +205,35 @@ socketClient?.unsubscribe(destination: subsId)
 
 You can use this feature if you need to auto reconnect with a spesific time or it will just try to reconnect every second.
 
-```ruby
+```swift
 // Reconnect after 4 sec
 socketClient.reconnect(request: NSURLRequest(url: url as URL) , delegate: self as StompClientLibDelegate, time: 4.0)
 ```
 
 ## Auto Disconnect with a given time
 
-```ruby
+```swift
 // Auto Disconnect after 3 sec
 socketClient.autoDisconnect(time: 3)
 ```
 
+## Login Passcode Implementation
+
+This is just an example. You need to convert to your implementation.
+[#42](https://github.com/WrathChaos/StompClientLib/issues/42) 
+
+```swift
+let connectFrame = "CONNECT\n login:admin\n passcode:password\n\n\n\0"
+socket.write(string: connectFrame)
+```
+
 ## Future Enhancements
 
-- [x] <del>Complete a working Example<del>
-- [x] <del>Add Carthage installation option<del>
+- [x] ~~Complete a working Example~~
+- [x] ~~Add Carthage installation option~~
 - [ ] Add Swift Package Manager installation option
-- [x] <del>XCode 9 compatibility<del>
-- [x] <del>Swift 4 compatibility and tests<del>
-- [ ] [ Add Quick Testing ](https://github.com/Quick/Quick)
-- [ ] Re-write websocket full swift version instead of Facebook's SocketRocket lib
+- [x] ~~XCode 9 compatibility~~
+- [x] ~~Swift 4 compatibility and tests~~
 
 # Change Log
 

@@ -59,9 +59,9 @@ public enum StompAckMode {
 }
 
 // Fundamental Protocols
-public protocol StompClientLibDelegate {
+public protocol StompClientLibDelegate: class {
     func stompClient(client: StompClientLibProtocol!, didReceiveMessageWithJSONBody jsonBody: AnyObject?, akaStringBody stringBody: String?, withHeader header:[String:String]?, withDestination destination: String)
-    
+
     func stompClientDidDisconnect(client: StompClientLibProtocol!)
     func stompClientDidConnect(client: StompClientLibProtocol!)
     func serverDidSendReceipt(client: StompClientLibProtocol!, withReceiptId receiptId: String)
@@ -91,7 +91,7 @@ public protocol StompClientLibProtocol : NSObject {
 public class StompClientLib: NSObject, StompClientLibProtocol {
     var socket: SRWebSocket?
     var sessionId: String?
-    var delegate: StompClientLibDelegate?
+    weak var delegate: StompClientLibDelegate?
     var connectionHeaders: [String: String]?
     public var connection: Bool = false
     public var certificateCheckEnabled = true
